@@ -340,7 +340,7 @@ if [[ "$TYPE" == "lxc" ]]; then
     PINS_TMP="$(mktemp)"
     printf '# localdash-pins\n' > "$PINS_TMP"
     for _entry in $HOST_PINS; do
-      printf '%s %s\n' "${_entry%%=*}" "${_entry#*=}" >> "$PINS_TMP"
+      printf '%s %s\n' "${_entry#*=}" "${_entry%%=*}" >> "$PINS_TMP"
     done
     pct push "$CT_ID" "$PINS_TMP" "/tmp/${APP}-pins.txt"
     pct exec "$CT_ID" -- bash -c \

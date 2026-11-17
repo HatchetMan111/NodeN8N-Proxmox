@@ -51,7 +51,7 @@ case "${1:-}" in
     ;;
   create) echo "created" > "$STATE/created"; echo "[MOCK] pct create $*" ;;
   start) echo "[MOCK] pct start $*" ;;
-  push) echo "[MOCK] pct push $*" ;;
+  push) echo "[MOCK] pct push $*"; [[ -f "${3:-}" ]] && cat "${3:-}" ;;
   reboot) echo "[MOCK] pct reboot $*" ;;
   exec)
     shift
@@ -159,6 +159,10 @@ grep -q "DNS_PINS=" "$TMP/install.log" || {
 }
 grep -q "localdash-pins" "$TMP/install.log" || {
   echo "FAIL: Download-Hosts wurden nicht vom Outer-Installer in den Gast gepinnt."
+  exit 1
+}
+grep -qE '^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+[[:space:]]+deb\.debian\.org' "$TMP/install.log" || {
+  echo "FAIL: Pins liegen nicht im Format 'IP hostname' vor (glibc ignoriert sie sonst)."
   exit 1
 }
 echo "MOCK_VERIFICATION_OK"

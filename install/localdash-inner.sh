@@ -108,7 +108,8 @@ apply_dns_pins() {
 
 fix_dns
 apply_dns_pins
-printf 'Acquire::ForceIPv4 "true";\n' > /etc/apt/apt.conf.d/99localdash-ipv4
+printf 'Acquire::ForceIPv4 "true";\nAcquire::Retries "10";\n' > /etc/apt/apt.conf.d/99localdash-ipv4
+msg_info "Auflösung nach Pins: $(getent ahostsv4 deb.debian.org 2>/dev/null | awk 'NR==1{print $1}')"
 
 export DEBIAN_FRONTEND=noninteractive
 msg_info "Installiere Systempakete ..."
@@ -119,8 +120,17 @@ for _attempt in 1 2 3; do
   sleep 5
 done
 [[ "$apt_ok" == "1" ]] || { msg_error "apt-get update nach 3 Versuchen fehlgeschlagen."; exit 1; }
-apt-get install -y --no-install-recommends \
-  ca-certificates curl git python3 python3-venv python3-pip nodejs npm
+install_ok=0
+for _attempt in 1 2 3 4 5; do
+  if apt-get install -y --fix-missing --no-install-recommends \
+    ca-certificates curl git python3 python3-venv python3-pip nodejs npm; then
+    install_ok=1
+    break
+  fi
+  msg_warn "apt-get install fehlgeschlagen (Versuch ${_attempt}/5) – bereits geladene Pakete bleiben im Cache, wiederhole in 5s."
+  sleep 5
+done
+[[ "$install_ok" == "1" ]] || { msg_error "apt-get install nach 5 Versuchen fehlgeschlagen."; exit 1; }
 msg_ok "Systempakete installiert (Node $(node --version 2>/dev/null || echo '?'))."
 
 id "$APP" >/dev/null 2>&1 || useradd --system --home /var/lib/localdash --shell /usr/sbin/nologin "$APP"
