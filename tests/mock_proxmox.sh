@@ -122,9 +122,10 @@ STUB
 
 chmod +x "$BIN"/*
 
-echo "════ MOCK: Installation (LXC) ════"
+echo "════ MOCK: Installation (LXC, Einzeiler-Modus) ════"
+ONE_LINER_SCRIPT="$(cat "$ROOT/install/localdash.sh")"
 MOCK_STATE="$STATE" PATH="$BIN:$PATH" \
-  bash "$ROOT/install/localdash.sh" --ctid 900 2>&1 | tee "$TMP/install.log"
+  bash -c "$ONE_LINER_SCRIPT" localdash.sh --ctid 900 2>&1 | tee "$TMP/install.log"
 
 echo ""
 echo "════ MOCK: Reboot-Simulation ════"
@@ -142,6 +143,10 @@ MOCK_STATE="$STATE" PATH="$BIN:$PATH" \
 grep -q "INSTALLATION ERFOLGREICH" "$TMP/install.log"
 grep -q "pct start" "$TMP/install.log" || {
   echo "FAIL: LXC wurde nie gestartet (pct start fehlt im Installer)."
+  exit 1
+}
+grep -q "pct push.*localdash-inner.sh" "$TMP/install.log" || {
+  echo "FAIL: Inner-Script wurde nicht in den LXC übertragen (Einzeiler-Modus)."
   exit 1
 }
 echo "MOCK_VERIFICATION_OK"

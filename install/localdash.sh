@@ -317,16 +317,24 @@ msg_ok "Adresse: ${CT_IP}"
 
 msg_info "Installiere ${APP_DISPLAY} im Gast ..."
 if [[ "$TYPE" == "lxc" ]]; then
-  SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-  if [[ -f "${SCRIPT_DIR}/${APP}-inner.sh" ]]; then
-    INNER_TMP="$(mktemp)"
-    cp "${SCRIPT_DIR}/${APP}-inner.sh" "$INNER_TMP"
-    pct push "$CT_ID" "$INNER_TMP" "/tmp/${APP}-inner.sh"
-    msg_ok "Inner-Script lokal übertragen."
-  else
-    pct exec "$CT_ID" -- curl -fsSL --max-time 120 -o "/tmp/${APP}-inner.sh" "$INNER_URL"
-    msg_ok "Inner-Script aus Repo geladen."
+  INNER_TMP="$(mktemp)"
+  LOCAL_INNER="${LOCALDASH_INNER:-}"
+  if [[ -z "$LOCAL_INNER" && -n "${BASH_SOURCE[0]:-}" ]]; then
+    CANDIDATE="$(cd "$(dirname "${BASH_SOURCE[0]}")" 2>/dev/null && pwd)/${APP}-inner.sh"
+    [[ -f "$CANDIDATE" ]] && LOCAL_INNER="$CANDIDATE"
   fi
+  if [[ -n "$LOCAL_INNER" ]]; then
+    cp "$LOCAL_INNER" "$INNER_TMP"
+    msg_info "Inner-Script lokal: ${LOCAL_INNER}"
+  elif command -v curl >/dev/null 2>&1 && curl -fsSL --max-time 120 -o "$INNER_TMP" "$INNER_URL"; then
+    msg_info "Inner-Script via curl geladen."
+  elif command -v wget >/dev/null 2>&1 && wget -qLO "$INNER_TMP" "$INNER_URL"; then
+    msg_info "Inner-Script via wget geladen."
+  else
+    die "Inner-Script konnte nicht geladen werden: ${INNER_URL}"
+  fi
+  pct push "$CT_ID" "$INNER_TMP" "/tmp/${APP}-inner.sh"
+  msg_ok "Inner-Script in den LXC übertragen."
   pct exec "$CT_ID" -- env REPO_URL="$REPO_URL" REPO_REF="$REPO_REF" \
     APP_PORT="$APP_PORT" LOCALDASH_SRC="$LOCALDASH_SRC" DEBUG="$DEBUG" \
     bash "/tmp/${APP}-inner.sh"
