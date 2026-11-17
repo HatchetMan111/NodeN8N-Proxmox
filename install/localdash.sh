@@ -37,6 +37,21 @@ HOST_DNS="$(awk '/^nameserver/{print $2}' /etc/resolv.conf 2>/dev/null \
   | awk '$1 !~ /^(127\.|::1|0\.0\.0\.0)/ && !seen[$0]++' \
   | head -n 3 | tr '\n' ' ' | sed 's/ $//' || true)"
 
+# Download-Hosts auf dem Proxmox-Host auflösen (Host-DNS ist zuverlässig) und im
+# Gast in /etc/hosts pinnen – der Gast ist dann für apt/git/pip/npm unabhängig
+# von seinem (ggf. flakigen) DNS-Proxy.
+HOST_PINS=""
+for _h in deb.debian.org security.debian.org github.com raw.githubusercontent.com \
+          pypi.org files.pythonhosted.org registry.npmjs.org; do
+  _ip="$(getent ahostsv4 "$_h" 2>/dev/null | awk 'NR==1{print $1}')" || true
+  if [[ -n "$_ip" ]]; then
+    HOST_PINS+="${_h}=${_ip} "
+  else
+    msg_warn "Host konnte ${_h} nicht auflösen – kein Pin, Gast nutzt DNS-Fallback."
+  fi
+done
+HOST_PINS="${HOST_PINS% }"
+
 CT_ID="${CT_ID:-${CTID:-}}"
 CORES="${CORES:-$DEFAULT_CORES}"
 RAM="${RAM:-$DEFAULT_RAM}"
@@ -271,7 +286,7 @@ packages:
 runcmd:
   - systemctl enable --now qemu-guest-agent || true
   - curl -fsSL --max-time 120 -o /tmp/${APP}-inner.sh ${INNER_URL}
-  - REPO_URL=${REPO_URL} REPO_REF=${REPO_REF} APP_PORT=${APP_PORT} DNS_SERVERS='${HOST_DNS}' bash /tmp/${APP}-inner.sh
+  - REPO_URL=${REPO_URL} REPO_REF=${REPO_REF} APP_PORT=${APP_PORT} DNS_SERVERS='${HOST_DNS}' DNS_PINS='${HOST_PINS}' bash /tmp/${APP}-inner.sh
 CLOUD
     qm set "$CT_ID" --cicustom "user=${SNIPPET_STORAGE}:snippets/${APP}-${CT_ID}.yml"
     CREATED=1
@@ -341,7 +356,7 @@ if [[ "$TYPE" == "lxc" ]]; then
   msg_ok "Inner-Script in den LXC übertragen."
   pct exec "$CT_ID" -- env REPO_URL="$REPO_URL" REPO_REF="$REPO_REF" \
     APP_PORT="$APP_PORT" LOCALDASH_SRC="$LOCALDASH_SRC" DEBUG="$DEBUG" \
-    DNS_SERVERS="$HOST_DNS" \
+    DNS_SERVERS="$HOST_DNS" DNS_PINS="$HOST_PINS" \
     bash "/tmp/${APP}-inner.sh"
 else
   for _ in $(seq 1 12); do

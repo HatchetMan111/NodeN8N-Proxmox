@@ -89,7 +89,25 @@ fix_dns() {
   exit 1
 }
 
+apply_dns_pins() {
+  [[ -n "${DNS_PINS:-}" ]] || return 0
+  local entry host ip pinned=0
+  for entry in $DNS_PINS; do
+    host="${entry%%=*}"
+    ip="${entry#*=}"
+    [[ "$host" == "$ip" ]] && continue
+    if ! grep -qE "^[[:space:]]*$(printf '%s' "$ip" | sed 's/\./\\./g')[[:space:]]+${host}([[:space:]]|$)" /etc/hosts; then
+      printf '%s %s\n' "$ip" "$host" >> /etc/hosts
+      pinned=$((pinned + 1))
+    fi
+  done
+  if [[ "$pinned" -gt 0 ]]; then
+    msg_ok "${pinned} Host-Einträge (auf dem Proxmox-Host aufgelöst) in /etc/hosts gepinnt."
+  fi
+}
+
 fix_dns
+apply_dns_pins
 printf 'Acquire::ForceIPv4 "true";\n' > /etc/apt/apt.conf.d/99localdash-ipv4
 
 export DEBIAN_FRONTEND=noninteractive

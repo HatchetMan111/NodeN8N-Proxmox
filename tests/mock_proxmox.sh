@@ -153,4 +153,8 @@ grep -q "DNS_SERVERS=" "$TMP/install.log" || {
   echo "FAIL: DNS_SERVERS wird nicht an den Gast übergeben (DNS-Selbstheilung)."
   exit 1
 }
+grep -q "DNS_PINS=" "$TMP/install.log" || {
+  echo "FAIL: DNS_PINS (Host-aufgelöste IPs) werden nicht an den Gast übergeben."
+  exit 1
+}
 echo "MOCK_VERIFICATION_OK"
