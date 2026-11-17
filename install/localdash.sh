@@ -12,6 +12,7 @@ umask 077
 
 APP="localdash"
 APP_DISPLAY="LocalDash"
+GUEST_NAME="NodN8N"
 APP_PORT="8080"
 REPO_URL="https://github.com/HatchetMan111/NodeN8N-Proxmox"
 REPO_REF="main"
@@ -37,7 +38,7 @@ CORES="${CORES:-$DEFAULT_CORES}"
 RAM="${RAM:-$DEFAULT_RAM}"
 DISK="${DISK:-$DEFAULT_DISK}"
 TYPE="lxc"
-HOSTNAME_ARG="$APP"
+HOSTNAME_ARG="$GUEST_NAME"
 STORAGE_ARG=""
 TEMPLATE_STORE="$DEFAULT_TEMPLATE_STORE"
 BRIDGE="$DEFAULT_BRIDGE"
@@ -113,7 +114,7 @@ Usage:
 
 Optionen:
   --ctid ID          ID (Default: nächste freie ID via pvesh /cluster/nextid)
-  --hostname NAME    Hostname/VM-Name (Default: ${APP})
+  --hostname NAME    Hostname/VM-Name (Default: ${GUEST_NAME})
   --type lxc|vm      LXC (Default) oder VM (cloud-init)
   --cores N          vCPU (Default LXC ${DEFAULT_CORES} / VM ${VM_CORES})
   --memory MB        RAM (Default LXC ${DEFAULT_RAM} / VM ${VM_RAM})

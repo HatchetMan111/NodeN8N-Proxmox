@@ -13,15 +13,16 @@ Frontend: React 18 + Vite + TypeScript. Keine Cloud-Dienste, kein Docker, kein N
 bash -c "$(wget -qLO - https://raw.githubusercontent.com/HatchetMan111/NodeN8N-Proxmox/main/install/localdash.sh)"
 ```
 
-Standardmäßig wird die **nächste freie ID** verwendet und der Container heißt
-`localdash` (1 vCPU / 1024 MB RAM / 4 GB Disk, unprivilegiert, `onboot=1`).
+Standardmäßig wird die **nächste freie ID** verwendet und der Container/VM heißt
+`NodN8N` (1 vCPU / 1024 MB RAM / 4 GB Disk, unprivilegiert, `onboot=1`).
+Der systemd-Service und das Web-UI bleiben `localdash` / Port `8080`.
 
 ### Optionen
 
 ```bash
 CT_ID=150 CORES=2 RAM=2048 DISK=8 bash -c "$(wget -qLO - https://raw.githubusercontent.com/HatchetMan111/NodeN8N-Proxmox/main/install/localdash.sh)"
 
-bash localdash.sh --ctid 150 --hostname localdash --cores 2 --memory 2048 --disk 8 \
+bash localdash.sh --ctid 150 --hostname NodN8N --cores 2 --memory 2048 --disk 8 \
   --bridge vmbr0 --storage local-lvm
 
 bash localdash.sh --type vm --ctid 151          # VM statt LXC (2 vCPU / 2 GB / 8 GB)
@@ -32,7 +33,7 @@ bash localdash.sh --help
 | Option | Bedeutung | Default |
 |---|---|---|
 | `--ctid ID` | Container-/VM-ID | nächste freie ID (`pvesh get /cluster/nextid`) |
-| `--hostname NAME` | Hostname / VM-Name | `localdash` |
+| `--hostname NAME` | Hostname / VM-Name | `NodN8N` |
 | `--type lxc\|vm` | LXC oder VM (cloud-init) | `lxc` |
 | `--cores`, `--memory`, `--disk` | Ressourcen | LXC 1/1024/4, VM 2/2048/8 |
 | `--storage`, `--template-store`, `--bridge` | Proxmox-Ziele | auto / `local` / `vmbr0` |
@@ -46,7 +47,7 @@ Umgebungsvariablen: `CT_ID`, `CORES`, `RAM`, `DISK`, `DEBUG=1`.
 1. Prüft Host/Tools (`pct`, `qm`, `pvesh`, `pvesm`, `pveam`), nimmt die nächste freie ID.
 2. Erkennt RootFS-Storage (`local-lvm` bevorzugt), lädt das neueste
    `debian-12-standard`-Template (oder das Debian-Cloud-Image für VM-Modus).
-3. Erstellt den Gast `localdash` mit `onboot=1`; vorhandene IDs werden aktualisiert
+3. Erstellt den Gast `NodN8N` mit `onboot=1`; vorhandene IDs werden aktualisiert
    (**idempotent**, kein Neuaufbau).
 4. Installiert im Gast Python/venv + Node/npm, klont das Repo, baut die React-UI,
    schreibt `systemd/localdash.service` und startet `systemctl enable --now localdash`.
@@ -72,7 +73,7 @@ Umgebungsvariablen: `CT_ID`, `CORES`, `RAM`, `DISK`, `DEBUG=1`.
 
 ════════════════ INSTALLATION ERFOLGREICH ════════════════
   App          : LocalDash – lokales System-/Service-Dashboard
-  Typ          : LXC (ID 100, Name localdash, onboot=1)
+  Typ          : LXC (ID 100, Name NodN8N, onboot=1)
   Ressourcen   : 1 vCPU / 1024 MB RAM / 4 GB Disk
   Web UI       : http://192.168.1.100:8080
   Health       : http://192.168.1.100:8080/api/health

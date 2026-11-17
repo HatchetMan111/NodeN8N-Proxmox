@@ -12,7 +12,7 @@
 
 ## Global Constraints
 
-- App-Name `LocalDash`, Hostname/Service/User `localdash`, Port `8080`, Bind `0.0.0.0`.
+- App-Name `LocalDash`, LXC-/VM-Name `NodN8N`, Service/User `localdash`, Port `8080`, Bind `0.0.0.0`.
 - Repo: `https://github.com/HatchetMan111/NodeN8N-Proxmox`, Default-Branch `main`.
 - CT-ID immer nächste freie ID (`pvesh get /cluster/nextid`), außer `--ctid`.
 - LXC: unprivilegiert, `nesting=1`, `onboot=1`, 1 vCPU/1024 MB/4 GB.
@@ -93,7 +93,7 @@ Steps: `set -euo pipefail`, Variablen mit Defaults, `msg_*`-Helper, apt-Install,
 
 **Interfaces:**
 - Consumes: `REPO_URL`, Defaults aus Spec.
-- Produces: LXC `localdash`, Verifikation + URL-Ausgabe.
+- Produces: LXC `NodN8N`, Verifikation + URL-Ausgabe.
 
 Steps: Header + Variablenblock, `set -euo pipefail`/`umask`, Logging (`tee`), `trap ERR` (Befehl, Zeile, Exit, `tail -n 80 LOG_FILE`), `trap EXIT` cleanup, Args (`--ctid`, `--hostname`, `--type`, `--cores`, `--memory`, `--disk`, `--bridge`, `--storage`, `--template-store`, `--password`, `--ssh-key`, `--debug`, `-h`), Host-Checks, Storage-Erkennung, Template-Download, `pct create` (idempotent), `pct start`, IP-Poll, Inner-Script via `pct push` + `pct exec`, Verifikation (`systemctl is-active`, `curl /api/health`), Final-Output, `bash -n`.
 
@@ -102,7 +102,7 @@ Steps: Header + Variablenblock, `set -euo pipefail`/`umask`, Logging (`tee`), `t
 **Files:**
 - Modify: `install/localdash.sh`
 
-Steps: `--type vm`: `qm create` mit `name=localdash`, `onboot=1`; Debian-12-cloud-image auf `local:` importieren, `qm set --ide2 …media=cdrom`, `--boot order=scsi0`, `--scsi0 …size=8G`, cloud-init `user-data` (YAML) schreibt `/etc/localdash-install.sh` (Inner-Script per curl) und führt es aus; `qm start`; Verifikation via `qm guest exec` (falls verfügbar) oder Hinweis auf IP via `qm guest cmd network-get-interfaces`. Fehlerpfad: Image-Download-Fehler → volle Kette, keine halbe VM. `bash -n`.
+Steps: `--type vm`: `qm create` mit `name=NodN8N`, `onboot=1`; Debian-12-cloud-image auf `local:` importieren, `qm set --ide2 …media=cdrom`, `--boot order=scsi0`, `--scsi0 …size=8G`, cloud-init `user-data` (YAML) schreibt `/etc/localdash-install.sh` (Inner-Script per curl) und führt es aus; `qm start`; Verifikation via `qm guest exec` (falls verfügbar) oder Hinweis auf IP via `qm guest cmd network-get-interfaces`. Fehlerpfad: Image-Download-Fehler → volle Kette, keine halbe VM. `bash -n`.
 
 ### Task 8: Mock-Proxmox-Harness, README, Gesamtverifikation
 

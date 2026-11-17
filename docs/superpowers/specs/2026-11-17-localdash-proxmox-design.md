@@ -16,14 +16,14 @@ Einzeiler sowie ein testbarer Verifikationsdurchlauf.
 
 ## 2. Annahmen und Randbedingungen
 
-- App-Name: `LocalDash` (Anzeige), `localdash` (Hostname, Service, User, DB-/Datenpfade).
+- App-Name: `LocalDash` (Anzeige), `localdash` (Service, User, DB-/Datenpfade).
 - Zweck: System-/Service-Dashboard (aus der Beispielauswahl des Nutzers abgeleitet).
 - Backend: Python/FastAPI, Frontend: React 18 + Vite + TypeScript.
 - Web-UI-Port: `8080`, Bind `0.0.0.0`.
 - GitHub-Repo: `https://github.com/HatchetMan111/NodeN8N-Proxmox` (Branch `main`).
 - Standard-Ressourcen: LXC 1 vCPU / 1024 MB RAM / 4 GB Disk; VM 2 vCPU / 2048 MB RAM / 8 GB Disk.
 - CT-/VM-ID: immer die nächste freie ID (`pvesh get /cluster/nextid`), außer explizit gesetzt.
-- Namensgebung: LXC-Hostname und VM-Name `localdash`.
+- Namensgebung: LXC-Hostname und VM-Name `NodN8N` (Service weiter `localdash`).
 - LXC: unprivilegiert (`--unprivileged 1`), `nesting=1`, `onboot=1`.
 - Script läuft auf dem Proxmox-Host als root, nicht im Container.
 
@@ -85,7 +85,7 @@ Outer-Script:
 - Storage: `local-lvm` bevorzugt, sonst erstes `rootdir`.
 - Template: neuestes `debian-12-standard` (`.tar.zst|.tar.xz|.tar.gz`), Download falls nötig.
 - Idempotenz: vorhandene ID → Update-Modus, keine Neuerstellung; Inner-Script erneut laufen.
-- LXC: `pct create … --hostname localdash --cores --memory --swap --rootfs --net0
+- LXC: `pct create … --hostname NodN8N --cores --memory --swap --rootfs --net0
   name=eth0,bridge=…,ip=dhcp --unprivileged 1 --features nesting=1 --onboot 1 --start 0 --password …`.
 - VM: `qm create … --name localdash --cores --memory --net0 virtio,bridge=… --onboot 1`,
   Cloud-Image import, cloud-init user-data ruft Inner-Script per curl ab; `qm start`.
