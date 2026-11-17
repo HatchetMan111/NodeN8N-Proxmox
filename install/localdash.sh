@@ -336,6 +336,19 @@ msg_ok "Adresse: ${CT_IP}"
 
 msg_info "Installiere ${APP_DISPLAY} im Gast ..."
 if [[ "$TYPE" == "lxc" ]]; then
+  if [[ -n "$HOST_PINS" ]]; then
+    PINS_TMP="$(mktemp)"
+    printf '# localdash-pins\n' > "$PINS_TMP"
+    for _entry in $HOST_PINS; do
+      printf '%s %s\n' "${_entry%%=*}" "${_entry#*=}" >> "$PINS_TMP"
+    done
+    pct push "$CT_ID" "$PINS_TMP" "/tmp/${APP}-pins.txt"
+    pct exec "$CT_ID" -- bash -c \
+      "sed -i '/# localdash-pins/d' /etc/hosts && cat /tmp/${APP}-pins.txt >> /etc/hosts && rm -f /tmp/${APP}-pins.txt"
+    msg_ok "Download-Hosts (via Host-DNS aufgelöst) in /etc/hosts des LXC gepinnt."
+  else
+    msg_warn "Keine Host-Pins ermittelbar – Gast nutzt DNS-Fallback aus fix_dns."
+  fi
   INNER_TMP="$(mktemp)"
   LOCAL_INNER="${LOCALDASH_INNER:-}"
   if [[ -z "$LOCAL_INNER" && -n "${BASH_SOURCE[0]:-}" ]]; then
@@ -345,10 +358,10 @@ if [[ "$TYPE" == "lxc" ]]; then
   if [[ -n "$LOCAL_INNER" ]]; then
     cp "$LOCAL_INNER" "$INNER_TMP"
     msg_info "Inner-Script lokal: ${LOCAL_INNER}"
-  elif command -v curl >/dev/null 2>&1 && curl -fsSL --max-time 120 -o "$INNER_TMP" "$INNER_URL"; then
-    msg_info "Inner-Script via curl geladen."
-  elif command -v wget >/dev/null 2>&1 && wget -qLO "$INNER_TMP" "$INNER_URL"; then
-    msg_info "Inner-Script via wget geladen."
+  elif command -v curl >/dev/null 2>&1 && curl -fsSL --max-time 120 -o "$INNER_TMP" "${INNER_URL}?cb=$(date +%s)"; then
+    msg_info "Inner-Script via curl geladen (cache-geprüft)."
+  elif command -v wget >/dev/null 2>&1 && wget -qLO "$INNER_TMP" "${INNER_URL}?cb=$(date +%s)"; then
+    msg_info "Inner-Script via wget geladen (cache-geprüft)."
   else
     die "Inner-Script konnte nicht geladen werden: ${INNER_URL}"
   fi

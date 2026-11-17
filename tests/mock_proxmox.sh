@@ -157,4 +157,8 @@ grep -q "DNS_PINS=" "$TMP/install.log" || {
   echo "FAIL: DNS_PINS (Host-aufgelöste IPs) werden nicht an den Gast übergeben."
   exit 1
 }
+grep -q "localdash-pins" "$TMP/install.log" || {
+  echo "FAIL: Download-Hosts wurden nicht vom Outer-Installer in den Gast gepinnt."
+  exit 1
+}
 echo "MOCK_VERIFICATION_OK"

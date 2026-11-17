@@ -44,7 +44,7 @@ on_error() {
 }
 trap on_error ERR
 
-msg_info "Starte Inner-Installer (Repo: ${REPO_URL} @ ${REPO_REF})"
+msg_info "Starte Inner-Installer v3 (DNS-Pins aktiv) – Repo: ${REPO_URL} @ ${REPO_REF}"
 [[ "$(id -u)" == "0" ]] || { msg_error "Inner-Installer muss als root laufen."; exit 1; }
 
 DNS_TEST_HOST="deb.debian.org"
