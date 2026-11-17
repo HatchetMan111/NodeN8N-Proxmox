@@ -270,9 +270,22 @@ runcmd:
   - REPO_URL=${REPO_URL} REPO_REF=${REPO_REF} APP_PORT=${APP_PORT} bash /tmp/${APP}-inner.sh
 CLOUD
     qm set "$CT_ID" --cicustom "user=${SNIPPET_STORAGE}:snippets/${APP}-${CT_ID}.yml"
-    qm start "$CT_ID"
     CREATED=1
-    msg_ok "VM erstellt und gestartet (cloud-init, onboot=1)."
+    msg_ok "VM erstellt (cloud-init, onboot=1)."
+  fi
+fi
+
+if [[ "$TYPE" == "lxc" ]]; then
+  if ! pct status "$CT_ID" 2>/dev/null | grep -q '^status: running'; then
+    msg_info "Starte LXC ${CT_ID} ..."
+    pct start "$CT_ID"
+    msg_ok "LXC gestartet."
+  fi
+else
+  if ! qm status "$CT_ID" 2>/dev/null | grep -q '^status: running'; then
+    msg_info "Starte VM ${CT_ID} ..."
+    qm start "$CT_ID"
+    msg_ok "VM gestartet."
   fi
 fi
 
@@ -287,7 +300,19 @@ for _ in $(seq 1 36); do
   fi
   [[ -n "$CT_IP" ]] && break
 done
-[[ -n "$CT_IP" ]] || die "Keine IP für ID ${CT_ID} erhalten – Netz/Bridge prüfen."
+if [[ -z "$CT_IP" ]]; then
+  msg_error "Keine IP für ID ${CT_ID} erhalten – Diagnose:"
+  if [[ "$TYPE" == "lxc" ]]; then
+    pct status "$CT_ID" 2>&1 || true
+    pct config "$CT_ID" 2>&1 | grep -E 'net0|hostname|onboot' || true
+    pct exec "$CT_ID" -- ip -br addr 2>&1 || true
+    pct exec "$CT_ID" -- cat /etc/network/interfaces 2>&1 || true
+  else
+    qm status "$CT_ID" 2>&1 || true
+    qm guest cmd "$CT_ID" network-get-interfaces 2>&1 || true
+  fi
+  die "IP-Erkennung fehlgeschlagen – siehe Ausgabe oben und ${LOG_FILE}."
+fi
 msg_ok "Adresse: ${CT_IP}"
 
 msg_info "Installiere ${APP_DISPLAY} im Gast ..."

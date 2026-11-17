@@ -140,4 +140,8 @@ MOCK_STATE="$STATE" PATH="$BIN:$PATH" \
   bash "$ROOT/install/localdash.sh" --ctid 901 --type vm 2>&1 | tail -n 12 || true
 
 grep -q "INSTALLATION ERFOLGREICH" "$TMP/install.log"
+grep -q "pct start" "$TMP/install.log" || {
+  echo "FAIL: LXC wurde nie gestartet (pct start fehlt im Installer)."
+  exit 1
+}
 echo "MOCK_VERIFICATION_OK"
