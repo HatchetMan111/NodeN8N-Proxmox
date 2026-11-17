@@ -33,6 +33,10 @@ SNIPPET_STORAGE="local"
 RAW_BASE="${REPO_URL/github.com/raw.githubusercontent.com}"
 INNER_URL="${RAW_BASE}/${REPO_REF}/install/${APP}-inner.sh"
 
+HOST_DNS="$(awk '/^nameserver/{print $2}' /etc/resolv.conf 2>/dev/null \
+  | awk '$1 !~ /^(127\.|::1|0\.0\.0\.0)/ && !seen[$0]++' \
+  | head -n 3 | tr '\n' ' ' | sed 's/ $//' || true)"
+
 CT_ID="${CT_ID:-${CTID:-}}"
 CORES="${CORES:-$DEFAULT_CORES}"
 RAM="${RAM:-$DEFAULT_RAM}"
@@ -267,7 +271,7 @@ packages:
 runcmd:
   - systemctl enable --now qemu-guest-agent || true
   - curl -fsSL --max-time 120 -o /tmp/${APP}-inner.sh ${INNER_URL}
-  - REPO_URL=${REPO_URL} REPO_REF=${REPO_REF} APP_PORT=${APP_PORT} bash /tmp/${APP}-inner.sh
+  - REPO_URL=${REPO_URL} REPO_REF=${REPO_REF} APP_PORT=${APP_PORT} DNS_SERVERS='${HOST_DNS}' bash /tmp/${APP}-inner.sh
 CLOUD
     qm set "$CT_ID" --cicustom "user=${SNIPPET_STORAGE}:snippets/${APP}-${CT_ID}.yml"
     CREATED=1
@@ -337,6 +341,7 @@ if [[ "$TYPE" == "lxc" ]]; then
   msg_ok "Inner-Script in den LXC übertragen."
   pct exec "$CT_ID" -- env REPO_URL="$REPO_URL" REPO_REF="$REPO_REF" \
     APP_PORT="$APP_PORT" LOCALDASH_SRC="$LOCALDASH_SRC" DEBUG="$DEBUG" \
+    DNS_SERVERS="$HOST_DNS" \
     bash "/tmp/${APP}-inner.sh"
 else
   for _ in $(seq 1 12); do

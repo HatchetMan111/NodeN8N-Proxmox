@@ -47,9 +47,60 @@ trap on_error ERR
 msg_info "Starte Inner-Installer (Repo: ${REPO_URL} @ ${REPO_REF})"
 [[ "$(id -u)" == "0" ]] || { msg_error "Inner-Installer muss als root laufen."; exit 1; }
 
+DNS_TEST_HOST="deb.debian.org"
+RESOLV_OPTS="options timeout:3 attempts:4 single-request-reopen"
+
+write_resolv() {
+  printf 'nameserver %s\n%s\n' "$1" "$RESOLV_OPTS" > /etc/resolv.conf
+}
+
+fix_dns() {
+  local candidates=() ns best_ipv4=""
+  for ns in ${DNS_SERVERS:-}; do candidates+=("$ns"); done
+  if [[ -f /etc/resolv.conf ]]; then
+    while read -r _ ns; do
+      [[ "$ns" =~ ^(127\.|::1|0\.0\.0\.0) ]] || candidates+=("$ns")
+    done < /etc/resolv.conf
+  fi
+  ns="$(ip route 2>/dev/null | awk '/^default/{print $3; exit}')"
+  [[ -n "$ns" ]] && candidates+=("$ns")
+  candidates+=(1.1.1.1 9.9.9.9 8.8.8.8)
+
+  msg_info "Prüfe DNS-Auflösung (getestet wird: ${DNS_TEST_HOST}) ..."
+  for ns in $(printf '%s\n' "${candidates[@]}" | awk '!seen[$0]++'); do
+    write_resolv "$ns"
+    if getent ahostsv4 "$DNS_TEST_HOST" >/dev/null 2>&1; then
+      best_ipv4="$ns"
+      if getent hosts "$DNS_TEST_HOST" >/dev/null 2>&1; then
+        msg_ok "DNS funktioniert über ${ns} (A- und AAAA-Abfragen)."
+        return 0
+      fi
+    fi
+  done
+  if [[ -n "$best_ipv4" ]]; then
+    write_resolv "$best_ipv4"
+    msg_warn "Nur IPv4-Auflösung funktioniert (Nameserver ${best_ipv4}) – erzwinge IPv4 für apt."
+    return 0
+  fi
+  msg_error "Kein funktionierender DNS-Server gefunden (Kandidaten: ${candidates[*]})."
+  msg_error "Aktuelle /etc/resolv.conf:"
+  cat /etc/resolv.conf >&2 || true
+  msg_error "Bitte Nameserver/Firewall (UDP/TCP 53) im Gast-Netz prüfen."
+  exit 1
+}
+
+fix_dns
+printf 'Acquire::ForceIPv4 "true";\n' > /etc/apt/apt.conf.d/99localdash-ipv4
+
 export DEBIAN_FRONTEND=noninteractive
 msg_info "Installiere Systempakete ..."
-apt-get update
+apt_ok=0
+for _attempt in 1 2 3; do
+  if apt-get update; then apt_ok=1; break; fi
+  msg_warn "apt-get update fehlgeschlagen (Versuch ${_attempt}/3) – wiederhole in 5s."
+  sleep 5
+done
+[[ "$apt_ok" == "1" ]] || { msg_error "apt-get update nach 3 Versuchen fehlgeschlagen."; exit 1; }
 apt-get install -y --no-install-recommends \
   ca-certificates curl git python3 python3-venv python3-pip nodejs npm
 msg_ok "Systempakete installiert (Node $(node --version 2>/dev/null || echo '?'))."
