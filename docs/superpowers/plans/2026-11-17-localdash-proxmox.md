@@ -1,5 +1,8 @@
 # LocalDash Proxmox Installer Implementation Plan
 
+> **Abgelöst:** Dieses Dokument beschreibt LocalDash. Aktuell ist
+> `docs/superpowers/specs/2026-11-18-n8n-proxmox-design.md` (n8n).
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Ein GitHub-first-Repo bauen, das LocalDash (FastAPI + React/Vite-Dashboard, Port 8080) per Einzeiler als LXC oder VM auf Proxmox installiert, boot-sicher macht und selbst verifiziert.

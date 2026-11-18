@@ -1,5 +1,8 @@
 # LocalDash – Proxmox-Einzeiler-Installation (Design-Spec)
 
+> **Abgelöst:** Dieses Dokument beschreibt LocalDash. Aktuell ist
+> `docs/superpowers/specs/2026-11-18-n8n-proxmox-design.md` (n8n).
+
 Datum: 2026-11-17
 Status: Entwurf, vom Nutzer freigegeben (Ansatz A, LXC + VM)
 
