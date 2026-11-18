@@ -402,6 +402,14 @@ if [[ "$TYPE" == "lxc" ]]; then
   else
     die "Inner-Script konnte nicht geladen werden: ${INNER_URL}"
   fi
+  # Stale-CDN-Schutz: raw.githubusercontent.com kann nach einem Push einige
+  # Minuten hinter dem Repo herhängen – ohne Versions-Marker ist das Innere
+  # alt (z. B. ohne apt-Sandbox-Fix) und der Lauf würde kryptisch in apt enden.
+  INNER_VER="$(grep -m1 -oP '(?<=INNER_VERSION=")[^"]+' "$INNER_TMP" 2>/dev/null || true)"
+  if [[ -z "$INNER_VER" ]]; then
+    die "Inner-Script ohne Versions-Marker geladen (vermutlich veralteter CDN-Cache von raw.githubusercontent.com) – in ~3 Minuten erneut versuchen."
+  fi
+  msg_info "Inner-Script Version: ${INNER_VER}"
   pct push "$CT_ID" "$INNER_TMP" "/tmp/${APP}-inner.sh"
   msg_ok "Inner-Script in den LXC übertragen."
   # shellcheck disable=SC2086  # FORWARD_ARGS ist bewusst unquoted (0/1 Argument)

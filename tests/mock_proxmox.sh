@@ -212,7 +212,7 @@ grep -qE 'Ressourcen   : 2 vCPU / 2048 MB RAM / 8 GB Disk' "$LOG" || {
 # Inner-Installer (wird per pct push übertragen und im Mock mitgecat't):
 for needle in 'systemctl disable --now localdash' 'download.docker.com/linux/debian' \
               'N8N_ENCRYPTION_KEY' 'docker compose pull' 'docker compose up -d' \
-              '/healthz' 'APT::Sandbox::User' 'runuser -u _apt'; do
+              '/healthz' 'APT::Sandbox::User' 'runuser -u _apt' 'INNER_VERSION'; do
   grep -qF "$needle" "$LOG" || { echo "FAIL: Inner fehlt: $needle"; exit 1; }
 done
 for forbidden in 'uvicorn' 'npm run build' 'fastapi' 'venv/bin/pip' '/api/health'; do
@@ -223,6 +223,7 @@ grep -qF 'Kein n8n-Stack unter' "$LOG" || { echo "FAIL: Uninstall-Guard fehlt.";
 # Outer-Verifikation + Modi:
 grep -q 'http://localhost:5678/healthz' "$LOG" || { echo "FAIL: Health-Check nicht auf /healthz."; exit 1; }
 grep -q 'systemctl is-active docker' "$LOG" || { echo "FAIL: Docker-Status wird nicht geprüft."; exit 1; }
+grep -q 'Inner-Script Version:' "$LOG" || { echo "FAIL: Inner-Version wird nicht ausgegeben (Stale-CDN-Guard)."; exit 1; }
 grep -q -- '--uninstall' "$LOG" || { echo "FAIL: --uninstall fehlt in Summary/Modi."; exit 1; }
 grep -q -- '--update' "$LOG" || { echo "FAIL: --update fehlt in Summary/Modi."; exit 1; }
 

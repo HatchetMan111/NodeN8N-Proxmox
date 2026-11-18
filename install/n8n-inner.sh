@@ -8,6 +8,7 @@ set -euo pipefail
 umask 022
 
 APP="n8n"
+INNER_VERSION="2026-11-18.2-sandbox"
 APP_PORT="5678"
 APP_DIR="/opt/n8n"
 COMPOSE_FILE="${APP_DIR}/docker-compose.yml"
@@ -55,7 +56,7 @@ on_error() {
 trap on_error ERR
 
 [[ "$(id -u)" == "0" ]] || { msg_error "Inner-Installer muss als root laufen."; exit 1; }
-msg_info "Starte n8n-Inner-Installer (Modus: ${MODE}, Port ${APP_PORT}) – ${REPO_URL} @ ${REPO_REF}"
+msg_info "Starte n8n-Inner-Installer v${INNER_VERSION} (Modus: ${MODE}, Port ${APP_PORT}) – ${REPO_URL} @ ${REPO_REF}"
 
 compose() { ( cd "$APP_DIR" && docker compose -f "$COMPOSE_FILE" "$@" ); }
 
