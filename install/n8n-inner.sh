@@ -320,6 +320,27 @@ else
 fi
 msg_info "Auflösung nach Pins: $(getent ahostsv4 deb.debian.org 2>/dev/null | awk 'NR==1{print $1}')"
 
+# apt-Sandbox: apt's http-Methode läuft als eigener Benutzer _apt. Kann dieser
+# die Resolver-Dateien nicht lesen oder bricht seine Sandbox-Umgebung im
+# unprivilegierten LXC, meldet apt exakt 'Temporary failure resolving' – obwohl
+# getent als root funktioniert (getent-ok/apt-tot-Spalte). Rechte korrigieren,
+# Sandbox selbst testen, im Notfall dauerhaft als root arbeiten lassen.
+chmod 0644 /etc/resolv.conf /etc/hosts /etc/nsswitch.conf 2>/dev/null || true
+if id _apt >/dev/null 2>&1 && command -v runuser >/dev/null 2>&1; then
+  if runuser -u _apt -- getent hosts deb.debian.org >/dev/null 2>&1; then
+    msg_ok "apt-Sandbox (_apt) löst auf."
+  else
+    msg_warn "apt-Sandbox-Benutzer _apt kann nicht auflösen – korrigiere Dateirechte ..."
+    chmod 0644 /etc/resolv.conf /etc/hosts /etc/nsswitch.conf 2>/dev/null || true
+    if runuser -u _apt -- getent hosts deb.debian.org >/dev/null 2>&1; then
+      msg_ok "Benutzer _apt löst jetzt auf (Rechte korrigiert)."
+    else
+      msg_warn "_apt löst weiterhin nicht auf – apt-Methoden laufen dauerhaft als root (APT::Sandbox::User=root)."
+      printf 'APT::Sandbox::User "root";\n' > /etc/apt/apt.conf.d/99n8n-sandbox
+    fi
+  fi
+fi
+
 export DEBIAN_FRONTEND=noninteractive
 msg_info "Installiere Basispakete ..."
 apt_update_retry || { msg_error "apt-get update nach 3 Versuchen fehlgeschlagen."; exit 1; }

@@ -212,7 +212,7 @@ grep -qE 'Ressourcen   : 2 vCPU / 2048 MB RAM / 8 GB Disk' "$LOG" || {
 # Inner-Installer (wird per pct push übertragen und im Mock mitgecat't):
 for needle in 'systemctl disable --now localdash' 'download.docker.com/linux/debian' \
               'N8N_ENCRYPTION_KEY' 'docker compose pull' 'docker compose up -d' \
-              '/healthz'; do
+              '/healthz' 'APT::Sandbox::User' 'runuser -u _apt'; do
   grep -qF "$needle" "$LOG" || { echo "FAIL: Inner fehlt: $needle"; exit 1; }
 done
 for forbidden in 'uvicorn' 'npm run build' 'fastapi' 'venv/bin/pip' '/api/health'; do
