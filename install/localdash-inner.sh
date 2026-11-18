@@ -52,6 +52,7 @@ RESOLV_OPTS="options timeout:3 attempts:4 single-request-reopen"
 
 write_resolv() {
   printf 'nameserver %s\n%s\n' "$1" "$RESOLV_OPTS" > /etc/resolv.conf
+  chmod 0644 /etc/resolv.conf
 }
 
 fix_dns() {
@@ -104,10 +105,12 @@ apply_dns_pins() {
   if [[ "$pinned" -gt 0 ]]; then
     msg_ok "${pinned} Host-Einträge (auf dem Proxmox-Host aufgelöst) in /etc/hosts gepinnt."
   fi
+  chmod 0644 /etc/hosts
 }
 
 fix_dns
 apply_dns_pins
+chmod 0644 /etc/hosts /etc/resolv.conf
 printf 'Acquire::ForceIPv4 "true";\nAcquire::Retries "10";\n' > /etc/apt/apt.conf.d/99localdash-ipv4
 msg_info "Auflösung nach Pins: $(getent ahostsv4 deb.debian.org 2>/dev/null | awk 'NR==1{print $1}')"
 
@@ -128,6 +131,11 @@ for _attempt in 1 2 3 4 5; do
     break
   fi
   msg_warn "apt-get install fehlgeschlagen (Versuch ${_attempt}/5) – bereits geladene Pakete bleiben im Cache, wiederhole in 5s."
+  if [[ "$_attempt" == "2" ]]; then
+    msg_warn "Bereinige inkonsistente apt-Listen und lade sie neu."
+    rm -rf /var/lib/apt/lists/* || true
+    apt-get update || true
+  fi
   sleep 5
 done
 [[ "$install_ok" == "1" ]] || { msg_error "apt-get install nach 5 Versuchen fehlgeschlagen."; exit 1; }

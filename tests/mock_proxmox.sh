@@ -165,4 +165,8 @@ grep -qE '^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+[[:space:]]+deb\.debian\.org' "$TMP/ins
   echo "FAIL: Pins liegen nicht im Format 'IP hostname' vor (glibc ignoriert sie sonst)."
   exit 1
 }
+grep -q "chmod 0644 /etc/hosts" "$TMP/install.log" || {
+  echo "FAIL: /etc/hosts wird nicht auf 0644 gesetzt (_apt kann es sonst nicht lesen)."
+  exit 1
+}
 echo "MOCK_VERIFICATION_OK"

@@ -344,7 +344,7 @@ if [[ "$TYPE" == "lxc" ]]; then
     done
     pct push "$CT_ID" "$PINS_TMP" "/tmp/${APP}-pins.txt"
     pct exec "$CT_ID" -- bash -c \
-      "sed -i '/# localdash-pins/d' /etc/hosts && cat /tmp/${APP}-pins.txt >> /etc/hosts && rm -f /tmp/${APP}-pins.txt"
+      "sed -i '/# localdash-pins/d' /etc/hosts && cat /tmp/${APP}-pins.txt >> /etc/hosts && chmod 0644 /etc/hosts && rm -f /tmp/${APP}-pins.txt"
     msg_ok "Download-Hosts (via Host-DNS aufgelöst) in /etc/hosts des LXC gepinnt."
   else
     msg_warn "Keine Host-Pins ermittelbar – Gast nutzt DNS-Fallback aus fix_dns."
