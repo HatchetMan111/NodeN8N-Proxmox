@@ -120,6 +120,11 @@ fi
 echo '{"status":"ok","version":"1.0.0"}'
 STUB
 
+cat > "$BIN/getent" <<'STUB'
+#!/usr/bin/env bash
+exit 2
+STUB
+
 chmod +x "$BIN"/*
 
 echo "════ MOCK: Installation (LXC, Einzeiler-Modus) ════"
@@ -167,6 +172,10 @@ grep -qE '^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+[[:space:]]+deb\.debian\.org' "$TMP/ins
 }
 grep -q "chmod 0644 /etc/hosts" "$TMP/install.log" || {
   echo "FAIL: /etc/hosts wird nicht auf 0644 gesetzt (_apt kann es sonst nicht lesen)."
+  exit 1
+}
+grep -q "DNS-Pins (Fallback)" "$TMP/install.log" || {
+  echo "FAIL: Fallback-Pins bei IPv4-losem Host-DNS greifen nicht."
   exit 1
 }
 echo "MOCK_VERIFICATION_OK"

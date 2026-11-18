@@ -111,7 +111,11 @@ apply_dns_pins() {
 fix_dns
 apply_dns_pins
 chmod 0644 /etc/hosts /etc/resolv.conf
-printf 'Acquire::ForceIPv4 "true";\nAcquire::Retries "10";\n' > /etc/apt/apt.conf.d/99localdash-ipv4
+if getent ahostsv4 deb.debian.org >/dev/null 2>&1; then
+  printf 'Acquire::ForceIPv4 "true";\nAcquire::Retries "10";\n' > /etc/apt/apt.conf.d/99localdash-ipv4
+else
+  msg_warn "Kein IPv4 für deb.debian.org – ForceIPv4 wird NICHT erzwungen (IPv6-Fallback)."
+fi
 msg_info "Auflösung nach Pins: $(getent ahostsv4 deb.debian.org 2>/dev/null | awk 'NR==1{print $1}')"
 
 export DEBIAN_FRONTEND=noninteractive

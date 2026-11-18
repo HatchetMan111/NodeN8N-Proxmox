@@ -37,20 +37,7 @@ HOST_DNS="$(awk '/^nameserver/{print $2}' /etc/resolv.conf 2>/dev/null \
   | awk '$1 !~ /^(127\.|::1|0\.0\.0\.0)/ && !seen[$0]++' \
   | head -n 3 | tr '\n' ' ' | sed 's/ $//' || true)"
 
-# Download-Hosts auf dem Proxmox-Host auflösen (Host-DNS ist zuverlässig) und im
-# Gast in /etc/hosts pinnen – der Gast ist dann für apt/git/pip/npm unabhängig
-# von seinem (ggf. flakigen) DNS-Proxy.
-HOST_PINS=""
-for _h in deb.debian.org security.debian.org github.com raw.githubusercontent.com \
-          pypi.org files.pythonhosted.org registry.npmjs.org; do
-  _ip="$(getent ahostsv4 "$_h" 2>/dev/null | awk 'NR==1{print $1}')" || true
-  if [[ -n "$_ip" ]]; then
-    HOST_PINS+="${_h}=${_ip} "
-  else
-    msg_warn "Host konnte ${_h} nicht auflösen – kein Pin, Gast nutzt DNS-Fallback."
-  fi
-done
-HOST_PINS="${HOST_PINS% }"
+# HOST_PINS wird nach den msg_*-Helfern ermittelt (siehe unten).
 
 CT_ID="${CT_ID:-${CTID:-}}"
 CORES="${CORES:-$DEFAULT_CORES}"
@@ -88,6 +75,38 @@ LOG_FILE="${LOG_DIR}/${APP}-install-$(date +%F-%H%M%S).log"
 exec > >(tee -i "$LOG_FILE") 2>&1
 msg_info "Logdatei: ${LOG_FILE}"
 [[ "$DEBUG" == "1" ]] && { echo "--- DEBUG: set -x aktiv ---"; set -x; }
+
+# Download-Hosts auf dem Proxmox-Host auflösen und im Gast in /etc/hosts pinnen –
+# der Gast ist dann für apt/git/pip/npm unabhängig von seinem (ggf. flakigen)
+# DNS-Proxy. Manche Heim-Router/DNS-Filter liefern nur AAAA (kein IPv4); daher
+# Retry und bekannte Fallback-Adressen, damit apt mit ForceIPv4 planbar läuft.
+PIN_HOSTS="deb.debian.org security.debian.org github.com raw.githubusercontent.com pypi.org files.pythonhosted.org registry.npmjs.org"
+declare -A PIN_FALLBACK=(
+  [deb.debian.org]="151.101.2.132"
+  [security.debian.org]="151.101.130.132"
+  [github.com]="140.82.121.3"
+  [raw.githubusercontent.com]="185.199.108.133"
+  [pypi.org]="151.101.0.223"
+  [files.pythonhosted.org]="151.101.0.223"
+  [registry.npmjs.org]="104.16.9.34"
+)
+HOST_PINS=""
+HOST_PINS_SOURCE="DNS"
+for _h in $PIN_HOSTS; do
+  _ip=""
+  for _try in 1 2 3; do
+    _ip="$(getent ahostsv4 "$_h" 2>/dev/null | awk 'NR==1{print $1}')" || true
+    [[ -n "$_ip" ]] && break
+    sleep 1
+  done
+  if [[ -z "$_ip" ]]; then
+    _ip="${PIN_FALLBACK[$_h]:-}"
+    [[ -n "$_ip" ]] && HOST_PINS_SOURCE="Fallback"
+  fi
+  [[ -n "$_ip" ]] && HOST_PINS+="${_h}=${_ip} "
+done
+HOST_PINS="${HOST_PINS% }"
+msg_info "DNS-Pins (${HOST_PINS_SOURCE}): ${HOST_PINS:-keine}"
 
 on_error() {
   local ec=$?
